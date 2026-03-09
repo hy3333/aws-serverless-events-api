@@ -1,0 +1,47 @@
+name: Deploy Lambda
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::233636046266:role/github-actions-events-api-role
+          aws-region: ap-south-2
+
+      - name: Build Lambda package
+        run: |
+          mkdir package
+          pip install -r requirements.txt -t package
+          cp -r app package/
+
+      - name: Create deployment zip
+        run: |
+          cd package
+          zip -r ../lambda_function.zip .
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name events-api \
+            --zip-file fileb://lambda_function.zip \
+            --region ap-south-2

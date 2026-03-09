@@ -37,4 +37,9 @@ def delete_event(event_id: str):
     delete_event_service(event_id)
     return
 
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 handler = Mangum(app)
