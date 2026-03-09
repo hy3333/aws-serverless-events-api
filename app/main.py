@@ -14,7 +14,7 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"message": "Events API is running"}
+    return {"message": "Events API is running via CI/CD pipeline!"}
 
 
 @app.post("/events", response_model=EventResponse, status_code=201)
