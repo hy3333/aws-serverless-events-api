@@ -19,6 +19,7 @@ def create_event_service(event: EventCreate) -> EventResponse:
 
     created_event = EventResponse(
         event_id=str(uuid4()),
+        user_id=event.user_id,
         title=event.title,
         description=event.description,
         start_time=event.start_time,
@@ -29,6 +30,7 @@ def create_event_service(event: EventCreate) -> EventResponse:
     table.put_item(
         Item={
             "event_id": created_event.event_id,
+            "user_id": created_event.user_id,
             "title": created_event.title,
             "description": created_event.description,
             "start_time": created_event.start_time.isoformat(),

@@ -4,4 +4,19 @@ __pycache__/
 .env
 .DS_Store
 .idea/
+.vscode/__pycache__/
+*.pyc
+
+.venv/
+.env
+
+.DS_Store
+.idea/
 .vscode/
+
+# Lambda build artifacts
+lambda_package/
+lambda_package_linux/
+lambda_function.zip
+lambda_function_linux.zip
+package/
