@@ -23,6 +23,6 @@ class EventResponse(BaseModel):
 
 
 
-class PaginatedEventResponse(BaseModel):
+class PaginatedEventsResponse(BaseModel):
     items: list[EventResponse]
     next_key: Optional[str] = None
