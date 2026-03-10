@@ -14,6 +14,7 @@ class EventCreate(BaseModel):
 class EventResponse(BaseModel):
     event_id: str
     user_id: str
+    event_date: str
     title: str
     description: Optional[str]
     start_time: datetime
