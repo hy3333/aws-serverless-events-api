@@ -46,9 +46,17 @@ def get_event(user_id: str, event_id: str):
 def list_events_by_date(
     event_date: str,
     limit: int = Query(10, ge=1, le=100),
-    last_start_time: str | None = None
+    last_start_time: str | None = None,
+    last_user_id: str | None = None,
+    last_event_id: str | None = None
 ):
-    return list_events_by_date_service(event_date, limit, last_start_time)
+    return list_events_by_date_service(
+        event_date,
+        limit,
+        last_start_time,
+        last_user_id,
+        last_event_id
+    )
 
 
 @app.delete("/users/{user_id}/events/{event_id}", status_code=204)
