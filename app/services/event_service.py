@@ -126,26 +126,48 @@ def list_events_service(
     )
 
 
-def list_events_by_date_service(event_date: str) -> list[EventResponse]:
-    response = table.query(
-        IndexName="EventDateIndex",
-        KeyConditionExpression="event_date = :d",
-        ExpressionAttributeValues={
+def list_events_by_date_service(
+    event_date: str,
+    limit: int = 10,
+    last_start_time: str | None = None
+) -> PaginatedEventsResponse:
+    query_params = {
+        "IndexName": "EventDateIndex",
+        "KeyConditionExpression": "event_date = :d",
+        "ExpressionAttributeValues": {
             ":d": event_date
-        }
-    )
+        },
+        "Limit": limit
+    }
 
+    if last_start_time:
+        query_params["ExclusiveStartKey"] = {
+            "event_date": event_date,
+            "start_time": last_start_time
+        }
+
+    response = table.query(**query_params)
     items = response.get("Items", [])
+
     parsed_items = [EventResponse(**item) for item in items]
+
+    next_key = None
+    if "LastEvaluatedKey" in response:
+        next_key = response["LastEvaluatedKey"]["start_time"]
 
     logger.info(json.dumps({
         "event": "list_events_by_date",
         "event_date": event_date,
+        "limit": limit,
         "returned_count": len(parsed_items),
+        "next_key": next_key,
         "status": "success"
     }))
 
-    return parsed_items
+    return PaginatedEventsResponse(
+        items=parsed_items,
+        next_key=next_key
+    )
 
 
 def delete_event_service(user_id: str, event_id: str) -> None:

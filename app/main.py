@@ -42,9 +42,13 @@ def get_event(user_id: str, event_id: str):
     return get_event_service(user_id, event_id)
 
 
-@app.get("/events/by-date/{event_date}", response_model=list[EventResponse])
-def list_events_by_date(event_date: str):
-    return list_events_by_date_service(event_date)
+@app.get("/events/by-date/{event_date}", response_model=PaginatedEventsResponse)
+def list_events_by_date(
+    event_date: str,
+    limit: int = Query(10, ge=1, le=100),
+    last_start_time: str | None = None
+):
+    return list_events_by_date_service(event_date, limit, last_start_time)
 
 
 @app.delete("/users/{user_id}/events/{event_id}", status_code=204)
