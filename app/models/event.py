@@ -20,3 +20,9 @@ class EventResponse(BaseModel):
     start_time: datetime
     end_time: datetime
     created_at: datetime
+
+
+
+class PaginatedEventResponse(BaseModel):
+    items: list[EventResponse]
+    next_key: Optional[str] = None

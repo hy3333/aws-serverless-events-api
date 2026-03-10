@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from mangum import Mangum
 
-from app.models.event import EventCreate, EventResponse
+from app.models.event import EventCreate, EventResponse, PaginatedEventsResponse
 from app.services.event_service import (
     create_event_service,
     get_event_service,
@@ -28,9 +28,13 @@ def create_event(event: EventCreate):
     return create_event_service(event)
 
 
-@app.get("/users/{user_id}/events", response_model=list[EventResponse])
-def list_events(user_id: str):
-    return list_events_service(user_id)
+@app.get("/users/{user_id}/events", response_model=PaginatedEventsResponse)
+def list_events(
+    user_id: str,
+    limit: int = Query(10, ge=1, le=100),
+    last_evaluated_key: str | None = None
+):
+    return list_events_service(user_id, limit, last_evaluated_key)
 
 
 @app.get("/users/{user_id}/events/{event_id}", response_model=EventResponse)
