@@ -4,6 +4,7 @@ from fastapi import HTTPException
 import boto3
 import logging
 import json
+import base64
 
 from app.models.event import EventCreate, EventResponse, PaginatedEventsResponse
 
@@ -13,6 +14,16 @@ logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb", region_name="ap-south-2")
 table = dynamodb.Table("EventsV2")
+
+
+def encode_token(data: dict) -> str:
+    json_str = json.dumps(data)
+    return base64.urlsafe_b64encode(json_str.encode()).decode()
+
+
+def decode_token(token: str) -> dict:
+    json_str = base64.urlsafe_b64decode(token.encode()).decode()
+    return json.loads(json_str)
 
 
 def create_event_service(event: EventCreate) -> EventResponse:
@@ -86,7 +97,7 @@ def get_event_service(user_id: str, event_id: str) -> EventResponse:
 def list_events_service(
     user_id: str,
     limit: int = 10,
-    last_evaluated_key: str | None = None
+    next_token: str | None = None
 ) -> PaginatedEventsResponse:
     query_params = {
         "KeyConditionExpression": "user_id = :uid",
@@ -96,10 +107,11 @@ def list_events_service(
         "Limit": limit
     }
 
-    if last_evaluated_key:
+    if next_token:
+        decoded = decode_token(next_token)
         query_params["ExclusiveStartKey"] = {
-            "user_id": user_id,
-            "event_id": last_evaluated_key
+            "user_id": decoded["user_id"],
+            "event_id": decoded["event_id"]
         }
 
     response = table.query(**query_params)
@@ -107,31 +119,32 @@ def list_events_service(
 
     parsed_items = [EventResponse(**item) for item in items]
 
-    next_key = None
+    new_next_token = None
     if "LastEvaluatedKey" in response:
-        next_key = response["LastEvaluatedKey"]["event_id"]
+        new_next_token = encode_token({
+            "user_id": response["LastEvaluatedKey"]["user_id"],
+            "event_id": response["LastEvaluatedKey"]["event_id"]
+        })
 
     logger.info(json.dumps({
         "event": "list_events",
         "user_id": user_id,
         "limit": limit,
         "returned_count": len(parsed_items),
-        "next_key": next_key,
+        "has_next_token": new_next_token is not None,
         "status": "success"
     }))
 
     return PaginatedEventsResponse(
         items=parsed_items,
-        next_key=next_key
+        next_token=new_next_token
     )
 
 
 def list_events_by_date_service(
     event_date: str,
     limit: int = 10,
-    last_start_time: str | None = None,
-    last_user_id: str | None = None,
-    last_event_id: str | None = None
+    next_token: str | None = None
 ) -> PaginatedEventsResponse:
     query_params = {
         "IndexName": "EventDateIndex",
@@ -142,12 +155,13 @@ def list_events_by_date_service(
         "Limit": limit
     }
 
-    if last_start_time and last_user_id and last_event_id:
+    if next_token:
+        decoded = decode_token(next_token)
         query_params["ExclusiveStartKey"] = {
-            "user_id": last_user_id,
-            "event_id": last_event_id,
-            "event_date": event_date,
-            "start_time": last_start_time
+            "user_id": decoded["user_id"],
+            "event_id": decoded["event_id"],
+            "event_date": decoded["event_date"],
+            "start_time": decoded["start_time"]
         }
 
     response = table.query(**query_params)
@@ -155,27 +169,28 @@ def list_events_by_date_service(
 
     parsed_items = [EventResponse(**item) for item in items]
 
-    next_key = None
+    new_next_token = None
     if "LastEvaluatedKey" in response:
         lek = response["LastEvaluatedKey"]
-        next_key = {
-            "last_start_time": lek["start_time"],
-            "last_user_id": lek["user_id"],
-            "last_event_id": lek["event_id"]
-        }
+        new_next_token = encode_token({
+            "user_id": lek["user_id"],
+            "event_id": lek["event_id"],
+            "event_date": lek["event_date"],
+            "start_time": lek["start_time"]
+        })
 
     logger.info(json.dumps({
         "event": "list_events_by_date",
         "event_date": event_date,
         "limit": limit,
         "returned_count": len(parsed_items),
-        "next_key": next_key,
+        "has_next_token": new_next_token is not None,
         "status": "success"
     }))
 
     return PaginatedEventsResponse(
         items=parsed_items,
-        next_key=json.dumps(next_key) if next_key else None
+        next_token=new_next_token
     )
 
 
