@@ -15,7 +15,7 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"message": "Events API is running via CI/CD"}
+    return {"Message": "Events API is running via CI/CD"}
 
 
 @app.get("/health")
