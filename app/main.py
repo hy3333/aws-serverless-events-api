@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from mangum import Mangum
@@ -11,11 +13,29 @@ from app.services.event_service import (
     delete_event_service,
 )
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 app = FastAPI()
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url.path}")
+
+    response = await call_next(request)
+
+    logger.info(f"Response status: {response.status_code}")
+
+    return response
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"Unhandled exception on {request.method} {request.url.path}: {str(exc)}"
+    )
+
     return JSONResponse(
         status_code=500,
         content={

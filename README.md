@@ -123,11 +123,17 @@ DynamoDB table:
 ```
 EventsV2
 ```
+## Monitoring
+
+CloudWatch dashboard monitors:
+
+- Lambda invocations, errors, duration, and throttles
+- API Gateway request count, latency, 4XX errors, and 5XX errors
+- DynamoDB read/write activity
 
 ## Future Improvements
 
 * Rate limiting
 * Event update endpoint
-* Monitoring dashboards
 * Request tracing
 * API usage metrics

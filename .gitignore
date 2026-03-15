@@ -9,7 +9,7 @@ __pycache__/
 
 .venv/
 .env
-
+.aws-sam/
 .DS_Store
 .idea/
 .vscode/
