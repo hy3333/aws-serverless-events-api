@@ -5,6 +5,7 @@ import boto3
 import logging
 import json
 import base64
+import os
 
 from app.models.event import EventCreate, EventResponse, PaginatedEventsResponse
 
@@ -12,8 +13,10 @@ from app.models.event import EventCreate, EventResponse, PaginatedEventsResponse
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+TABLE_NAME = os.environ.get("EVENTS_TABLE_NAME", "EventsV2")
+
 dynamodb = boto3.resource("dynamodb", region_name="ap-south-2")
-table = dynamodb.Table("EventsV2")
+table = dynamodb.Table(TABLE_NAME)
 
 
 def encode_token(data: dict) -> str:

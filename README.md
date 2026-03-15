@@ -1,68 +1,133 @@
 # Serverless Events API (AWS)
 
-A production-style serverless backend API built using AWS services and Python.  
-The system allows users to create, retrieve, list, and delete events using a REST API.
+A production-style serverless REST API for managing user events, built using FastAPI and deployed on AWS using a fully serverless architecture.
 
-The application demonstrates a modern serverless architecture used in cloud-native systems.
+## Architecture
 
----
+This project uses a serverless architecture deployed via AWS SAM and CloudFormation.
 
-# Architecture
+Main components:
 
-![Architecture Diagram](docs\API Gateway Event Flow diag.png)
+* **API Gateway (HTTP API)** – Exposes REST endpoints
+* **Cognito JWT Authorizer** – Secures protected endpoints
+* **AWS Lambda** – Runs the FastAPI application
+* **Mangum** – ASGI adapter for Lambda
+* **FastAPI** – API framework
+* **DynamoDB** – Stores event data
+* **CloudWatch Logs** – Application logging
+* **AWS SAM + CloudFormation** – Infrastructure as Code
+* **GitHub + CI/CD** – Automated deployments
 
-Request Flow:
+## Runtime Request Flow
 
-Client → API Gateway → Lambda → FastAPI → DynamoDB
+Client → API Gateway → Cognito Authorizer → Lambda → Mangum → FastAPI → Service Layer → DynamoDB
 
-Execution logs are automatically stored in CloudWatch.
+## Deployment Flow
 
----
+Developer → GitHub → GitHub Actions → AWS SAM → CloudFormation → AWS Infrastructure
 
-# Tech Stack
+## Features
 
-Backend
-- Python
-- FastAPI
-- Mangum (ASGI adapter for AWS Lambda)
+* Create events
+* List user events with pagination
+* Get event by ID
+* Query events by date
+* Delete events
+* JWT authentication via Cognito
+* Serverless deployment with AWS SAM
+* DynamoDB-backed storage
+* Structured error handling
+* CloudWatch logging
 
-AWS Services
-- API Gateway (HTTP API)
-- AWS Lambda
-- DynamoDB
-- IAM
-- CloudWatch Logs
+## API Endpoints
 
-Infrastructure
-- AWS SAM template (infra/template.yaml)
+Public routes:
 
----
+```
+GET /
+GET /health
+```
 
-# Features
+Protected routes (JWT required):
 
-- Create events
-- Retrieve events by ID
-- List all events
-- Delete events
-- Serverless architecture
-- DynamoDB persistence
-- CloudWatch logging
-
----
-
-# API Endpoints
-
-### Create Event
-
+```
 POST /events
+GET /users/{user_id}/events
+GET /users/{user_id}/events/{event_id}
+GET /events/by-date/{event_date}
+DELETE /users/{user_id}/events/{event_id}
+```
 
-Example request:
+## Authentication
 
-```json
-{
-  "user_id": "user123",
-  "title": "Team meeting",
-  "description": "Project sync",
-  "start_time": "2026-03-10T10:00:00",
-  "end_time": "2026-03-10T11:00:00"
-}
+Protected routes use **Cognito JWT Authorizer**.
+
+Clients must include an access token:
+
+```
+Authorization: Bearer <access_token>
+```
+
+Tokens are generated through the Cognito Hosted UI OAuth flow.
+
+## Tech Stack
+
+* Python
+* FastAPI
+* Mangum
+* AWS Lambda
+* API Gateway (HTTP API)
+* Amazon Cognito
+* DynamoDB
+* AWS SAM
+* CloudFormation
+* GitHub Actions
+
+## Project Structure
+
+```
+app/
+ ├── models/
+ ├── services/
+ ├── main.py
+
+infra/
+ ├── template.yaml
+ ├── samconfig.toml
+
+requirements.txt
+README.md
+```
+
+## Deployment
+
+Infrastructure is deployed using AWS SAM.
+
+```
+sam build
+sam deploy
+```
+
+CloudFormation manages all infrastructure resources.
+
+## Environment
+
+Region:
+
+```
+ap-south-2
+```
+
+DynamoDB table:
+
+```
+EventsV2
+```
+
+## Future Improvements
+
+* Rate limiting
+* Event update endpoint
+* Monitoring dashboards
+* Request tracing
+* API usage metrics

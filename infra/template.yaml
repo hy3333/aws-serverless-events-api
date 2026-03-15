@@ -1,39 +1,91 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Serverless Events API
+Description: AWS Serverless Events API
+
+Parameters:
+  StageName:
+    Type: String
+    Default: prod
+
+  EventsTableName:
+    Type: String
+    Default: EventsV2
+
+  CognitoIssuer:
+    Type: String
+    Default: https://cognito-idp.ap-south-2.amazonaws.com/ap-south-2_mHyC0n7gQ
+
+  CognitoAudience:
+    Type: String
+    Default: 9em6vs5jdqd68c84bm0278699
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 10
+    MemorySize: 512
+    Environment:
+      Variables:
+        EVENTS_TABLE_NAME: !Ref EventsTableName
 
 Resources:
-
-  EventsTable:
-    Type: AWS::DynamoDB::Table
+  EventsHttpApi:
+    Type: AWS::Serverless::HttpApi
     Properties:
-      TableName: Events
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: event_id
-          AttributeType: S
-      KeySchema:
-        - AttributeName: event_id
-          KeyType: HASH
+      StageName: !Ref StageName
+      Auth:
+        Authorizers:
+          CognitoJwtAuthorizer:
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              issuer: !Ref CognitoIssuer
+              audience:
+                - !Ref CognitoAudience
+        DefaultAuthorizer: CognitoJwtAuthorizer
 
   EventsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: events-api
-      Runtime: python3.11
+      CodeUri: ..
       Handler: app.main.handler
-      CodeUri: ../
-      MemorySize: 128
-      Timeout: 10
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: Events
+            TableName: !Ref EventsTableName
       Events:
-        Api:
+        RootRoute:
           Type: HttpApi
           Properties:
+            ApiId: !Ref EventsHttpApi
+            Path: /
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+        HealthRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EventsHttpApi
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+        ProxyRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref EventsHttpApi
             Path: /{proxy+}
             Method: ANY
-      Environment:
-        Variables:
-          TABLE_NAME: Events
+
+Outputs:
+  ApiUrl:
+    Description: HTTP API endpoint
+    Value: !Sub "https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+
+  FunctionName:
+    Description: Lambda function name
+    Value: !Ref EventsFunction
+
+  TableName:
+    Description: Existing DynamoDB table name used by Lambda
+    Value: !Ref EventsTableName

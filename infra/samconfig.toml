@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "events-api-stack"
+resolve_s3 = true
+s3_prefix = "events-api-stack"
+region = "ap-south-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "StageName=\"prod\" EventsTableName=\"EventsV2\" CognitoIssuer=\"https://cognito-idp.ap-south-2.amazonaws.com/ap-south-2_mHyC0n7gQ\" CognitoAudience=\"9em6vs5jdqd68c84bm0278699\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-south-2"

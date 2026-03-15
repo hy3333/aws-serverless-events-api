@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 from app.models.event import EventCreate, EventResponse, PaginatedEventsResponse
@@ -11,6 +12,17 @@ from app.services.event_service import (
 )
 
 app = FastAPI()
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "message": "Unexpected error occurred"
+        },
+    )
 
 
 @app.get("/")
@@ -57,4 +69,4 @@ def delete_event(user_id: str, event_id: str):
     return
 
 
-handler = Mangum(app)
+handler = Mangum(app, api_gateway_base_path="/prod")
