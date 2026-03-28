@@ -23,6 +23,8 @@ DynamoDB (Events Table + GSI)
 Authentication Flow:
 User → Cognito Hosted UI → JWT Token → API Gateway Authorizer → Lambda
 
+![Flowchart](docs/API%20Gateway%20Event%20Flow.png)
+
 ---
 
 # 🛠 Tech Stack
@@ -101,23 +103,6 @@ ExistingGitHubOidcProviderArn: arn:aws:iam::<account-id>:oidc-provider/token.act
 
 ---
 
-# 📁 Project Structure
-
-.
-├── app/
-├── infra/template.yaml
-├── .github/workflows/deploy.yml
-├── requirements.txt
-└── README.md
-
----
-
-# 🎯 Interview Explanation
-
-I implemented CI/CD using GitHub Actions with AWS OIDC authentication. The AWS side of the pipeline is defined using Infrastructure as Code, ensuring secure and automated deployments.
-
----
-
 # 🚀 Future Improvements
 
 - Add WAF / Rate limiting  
@@ -127,5 +112,4 @@ I implemented CI/CD using GitHub Actions with AWS OIDC authentication. The AWS s
 ---
 
 # 👨‍💻 Author
-
-Your Name
+Himanshu Yadav
