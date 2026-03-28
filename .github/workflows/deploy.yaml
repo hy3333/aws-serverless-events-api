@@ -1,13 +1,18 @@
-name: Deploy Lambda
+name: Deploy SAM App
 
 on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
+
+env:
+  AWS_REGION: ap-south-2
+  STACK_NAME: test-event-stack
 
 jobs:
   deploy:
@@ -17,31 +22,69 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Configure AWS credentials using OIDC
+      - name: Configure AWS credentials from GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::233636046266:role/github-actions-events-api-role
-          aws-region: ap-south-2
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build Lambda package
-        run: |
-          mkdir package
-          pip install -r requirements.txt -t package
-          cp -r app package/
+      - name: Setup AWS SAM
+        uses: aws-actions/setup-sam@v2
 
-      - name: Create deployment zip
-        run: |
-          cd package
-          zip -r ../lambda_function.zip .
+      - name: SAM build
+        run: sam build --template-file infra/template.yaml --no-cached
 
-      - name: Deploy to Lambda
+      - name: SAM deploy
         run: |
-          aws lambda update-function-code \
-            --function-name events-api \
-            --zip-file fileb://lambda_function.zip \
-            --region ap-south-2
+          sam deploy \
+            --template-file infra/template.yaml \
+            --stack-name $STACK_NAME \
+            --region $AWS_REGION \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changesetname: Deploy SAM App
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-2
+  STACK_NAME: test-event-stack
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials from GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::233636046266:role/github-actions-events-api-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup AWS SAM
+        uses: aws-actions/setup-sam@v2
+
+      - name: SAM build
+        run: sam build --template-file infra/template.yaml --no-cached
+
+      - name: SAM deploy
+        run: |
+          sam deploy \
+            --template-file infra/template.yaml \
+            --stack-name $STACK_NAME \
+            --region $AWS_REGION \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \    
+            --no-fail-on-empty-changeset
+            

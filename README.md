@@ -1,139 +1,131 @@
-# Serverless Events API (AWS)
+# 🚀 AWS Serverless Events API (Full IaC + CI/CD)
 
-A production-style serverless REST API for managing user events, built using FastAPI and deployed on AWS using a fully serverless architecture.
+A production-ready **serverless event management API** built using AWS services with:
 
-## Architecture
+- Full Infrastructure as Code (AWS SAM / CloudFormation)  
+- JWT Authentication (Cognito)  
+- Pagination support  
+- CloudWatch Monitoring Dashboard  
+- CI/CD pipeline using GitHub Actions (OIDC, no access keys)  
 
-This project uses a serverless architecture deployed via AWS SAM and CloudFormation.
+---
 
-Main components:
+# 🧠 Architecture
 
-* **API Gateway (HTTP API)** – Exposes REST endpoints
-* **Cognito JWT Authorizer** – Secures protected endpoints
-* **AWS Lambda** – Runs the FastAPI application
-* **Mangum** – ASGI adapter for Lambda
-* **FastAPI** – API framework
-* **DynamoDB** – Stores event data
-* **CloudWatch Logs** – Application logging
-* **AWS SAM + CloudFormation** – Infrastructure as Code
-* **GitHub + CI/CD** – Automated deployments
+Client (Postman / Browser)
+        ↓
+API Gateway (HTTP API)
+        ↓
+Lambda (FastAPI via Mangum)
+        ↓
+DynamoDB (Events Table + GSI)
 
-## Runtime Request Flow
+Authentication Flow:
+User → Cognito Hosted UI → JWT Token → API Gateway Authorizer → Lambda
 
-Client → API Gateway → Cognito Authorizer → Lambda → Mangum → FastAPI → Service Layer → DynamoDB
+---
 
-## Deployment Flow
+# 🛠 Tech Stack
 
-Developer → GitHub → GitHub Actions → AWS SAM → CloudFormation → AWS Infrastructure
+- AWS Lambda  
+- API Gateway (HTTP API)  
+- DynamoDB (with GSI for date-based queries)  
+- Amazon Cognito (JWT Auth)  
+- CloudWatch (Logs + Dashboard)  
+- AWS SAM (Infrastructure as Code)  
+- GitHub Actions (CI/CD with OIDC)  
+- FastAPI + Mangum  
 
-## Features
+---
 
-* Create events
-* List user events with pagination
-* Get event by ID
-* Query events by date
-* Delete events
-* JWT authentication via Cognito
-* Serverless deployment with AWS SAM
-* DynamoDB-backed storage
-* Structured error handling
-* CloudWatch logging
+# 📦 Features
 
-## API Endpoints
+## API Features
+- Create Event  
+- Get Event  
+- List Events (with pagination)  
+- List Events by Date (via GSI)  
+- Delete Event  
 
-Public routes:
+## Advanced Features
+- Pagination using next_token
+- JWT-based authentication (Cognito)
+- Structured logging
 
-```
-GET /
-GET /health
-```
+---
 
-Protected routes (JWT required):
+# 📊 CloudWatch Dashboard
 
-```
-POST /events
-GET /users/{user_id}/events
-GET /users/{user_id}/events/{event_id}
-GET /events/by-date/{event_date}
-DELETE /users/{user_id}/events/{event_id}
-```
+Includes monitoring for:
+- Lambda Invocations, Errors, Duration  
+- API Gateway Requests, Latency, 4xx/5xx  
+- DynamoDB Read/Write capacity  
 
-## Authentication
+![Dashboard](docs/cloudwatch_dashboard.jpeg)
 
-Protected routes use **Cognito JWT Authorizer**.
+---
 
-Clients must include an access token:
+# ⚙️ Setup Instructions
 
-```
-Authorization: Bearer <access_token>
-```
+## 1. Clone Repo
+git clone https://github.com/hy3333/aws-serverless-events-api.git
+cd aws-serverless-events-api
 
-Tokens are generated through the Cognito Hosted UI OAuth flow.
+## 2. Deploy Infrastructure (Manual Bootstrap)
+cd infra
+sam build --no-cached
+sam deploy --guided
 
-## Tech Stack
+---
 
-* Python
-* FastAPI
-* Mangum
-* AWS Lambda
-* API Gateway (HTTP API)
-* Amazon Cognito
-* DynamoDB
-* AWS SAM
-* CloudFormation
-* GitHub Actions
+# 🔁 CI/CD (GitHub Actions)
 
-## Project Structure
+git push
+→ GitHub Actions
+→ Assume AWS role via OIDC
+→ sam build
+→ sam deploy
+→ Stack updated
 
-```
-app/
- ├── models/
- ├── services/
- ├── main.py
+---
 
-infra/
- ├── template.yaml
- ├── samconfig.toml
+# ⚠️ Important Config Notes
 
-requirements.txt
-README.md
-```
+## Fresh Setup
+CreateGitHubOidcProvider: "true"
+ExistingGitHubOidcProviderArn: ""
 
-## Deployment
+## If already exists
+CreateGitHubOidcProvider: "false"
+ExistingGitHubOidcProviderArn: arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com
 
-Infrastructure is deployed using AWS SAM.
+---
 
-```
-sam build
-sam deploy
-```
+# 📁 Project Structure
 
-CloudFormation manages all infrastructure resources.
+.
+├── app/
+├── infra/template.yaml
+├── .github/workflows/deploy.yml
+├── requirements.txt
+└── README.md
 
-## Environment
+---
 
-Region:
+# 🎯 Interview Explanation
 
-```
-ap-south-2
-```
+I implemented CI/CD using GitHub Actions with AWS OIDC authentication. The AWS side of the pipeline is defined using Infrastructure as Code, ensuring secure and automated deployments.
 
-DynamoDB table:
+---
 
-```
-EventsV2
-```
-## Monitoring
+# 🚀 Future Improvements
 
-CloudWatch dashboard monitors:
+- Add WAF / Rate limiting  
+- Add frontend UI  
+- Improve IAM least privilege  
 
-- Lambda invocations, errors, duration, and throttles
-- API Gateway request count, latency, 4XX errors, and 5XX errors
-- DynamoDB read/write activity
+---
 
-## Future Improvements
+# 👨‍💻 Author
 
-* Rate limiting
-* Event update endpoint
-* Request tracing
-* API usage metrics
+Your Name
