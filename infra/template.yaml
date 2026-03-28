@@ -1,23 +1,58 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AWS Serverless Events API
+Description: Full IaC - AWS Serverless Events API with CloudWatch Dashboard and GitHub Actions OIDC role
 
 Parameters:
   StageName:
     Type: String
     Default: prod
 
+  ProjectName:
+    Type: String
+    Default: test-events-api
+
   EventsTableName:
     Type: String
-    Default: EventsV2
+    Default: eventsv1
 
-  CognitoIssuer:
+  CognitoDomainPrefix:
     Type: String
-    Default: https://cognito-idp.ap-south-2.amazonaws.com/ap-south-2_mHyC0n7gQ
+    Default: events-api-full-auth-demo
+    Description: Must be globally unique across Cognito domains
 
-  CognitoAudience:
+  CallbackUrl:
     Type: String
-    Default: 9em6vs5jdqd68c84bm0278699
+    Default: https://oauth.pstmn.io/v1/callback
+
+  LogoutUrl:
+    Type: String
+    Default: https://oauth.pstmn.io/v1/callback
+
+  GitHubOrg:
+    Type: String
+    Default: hy3333
+
+  GitHubRepo:
+    Type: String
+    Default: aws-serverless-events-api
+
+  GitHubBranch:
+    Type: String
+    Default: master
+
+  CreateGitHubOidcProvider:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  ExistingGitHubOidcProviderArn:
+    Type: String
+    Default: "arn:aws:iam::233636046266:oidc-provider/token.actions.githubusercontent.com"
+
+Conditions:
+  ShouldCreateGitHubOidcProvider: !Equals [!Ref CreateGitHubOidcProvider, "true"]
 
 Globals:
   Function:
@@ -26,9 +61,89 @@ Globals:
     MemorySize: 512
     Environment:
       Variables:
-        EVENTS_TABLE_NAME: !Ref EventsTableName
+        EVENTS_TABLE_NAME: !Ref EventsTable
 
 Resources:
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref EventsTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: event_id
+          AttributeType: S
+        - AttributeName: event_date
+          AttributeType: S
+        - AttributeName: start_time
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: event_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: EventDateIndex
+          KeySchema:
+            - AttributeName: event_date
+              KeyType: HASH
+            - AttributeName: start_time
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  EventsUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${ProjectName}-user-pool"
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  EventsUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${ProjectName}-app-client"
+      UserPoolId: !Ref EventsUserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - phone
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Ref CallbackUrl
+      LogoutURLs:
+        - !Ref LogoutUrl
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+
+  EventsUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref EventsUserPool
+      ManagedLoginVersion: 1
+
   EventsHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -38,9 +153,9 @@ Resources:
           CognitoJwtAuthorizer:
             IdentitySource: "$request.header.Authorization"
             JwtConfiguration:
-              issuer: !Ref CognitoIssuer
+              issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${EventsUserPool}"
               audience:
-                - !Ref CognitoAudience
+                - !Ref EventsUserPoolClient
         DefaultAuthorizer: CognitoJwtAuthorizer
 
   EventsFunction:
@@ -50,7 +165,7 @@ Resources:
       Handler: app.main.handler
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref EventsTableName
+            TableName: !Ref EventsTable
       Events:
         RootRoute:
           Type: HttpApi
@@ -77,15 +192,201 @@ Resources:
             Path: /{proxy+}
             Method: ANY
 
+  EventsMonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${ProjectName}-dashboard"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 2,
+              "properties": {
+                "markdown": "# Serverless Events API Monitoring Dashboard\nMonitors Lambda, API Gateway, and DynamoDB for the full IaC deployment."
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 2,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Lambda Invocations / Errors / Throttles",
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "stat": "Sum",
+                "metrics": [
+                  [ "AWS/Lambda", "Invocations", "FunctionName", "${EventsFunction}", { "label": "Invocations" } ],
+                  [ ".", "Errors", ".", ".", { "label": "Errors" } ],
+                  [ ".", "Throttles", ".", ".", { "label": "Throttles" } ]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 2,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Lambda Duration (p50 / avg / max)",
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "metrics": [
+                  [ "AWS/Lambda", "Duration", "FunctionName", "${EventsFunction}", { "stat": "p50", "label": "p50 Duration" } ],
+                  [ "...", { "stat": "Average", "label": "Average Duration" } ],
+                  [ "...", { "stat": "Maximum", "label": "Max Duration" } ]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "API Gateway Requests / 4xx / 5xx",
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "stat": "Sum",
+                "metrics": [
+                  [ "AWS/ApiGateway", "Count", "ApiId", "${EventsHttpApi}", "Stage", "${StageName}", { "label": "Request Count" } ],
+                  [ ".", "4xx", ".", ".", ".", ".", { "label": "4xx Errors" } ],
+                  [ ".", "5xx", ".", ".", ".", ".", { "label": "5xx Errors" } ]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 8,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "API Gateway Latency (avg / p90)",
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "metrics": [
+                  [ "AWS/ApiGateway", "Latency", "ApiId", "${EventsHttpApi}", "Stage", "${StageName}", { "stat": "Average", "label": "Average Latency" } ],
+                  [ "...", { "stat": "p90", "label": "p90 Latency" } ]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 14,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "DynamoDB Read / Write Consumption",
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300,
+                "stat": "Sum",
+                "metrics": [
+                  [ "AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${EventsTable}", { "label": "Read Capacity Units" } ],
+                  [ ".", "ConsumedWriteCapacityUnits", ".", ".", { "label": "Write Capacity Units" } ]
+                ]
+              }
+            }
+          ]
+        }
+
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: ShouldCreateGitHubOidcProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+
+  GitHubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: github-actions-events-api-role
+      Description: OIDC deploy role for GitHub Actions to build and deploy the AWS Serverless Events API via SAM
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - ShouldCreateGitHubOidcProvider
+                - !Ref GitHubOidcProvider
+                - !Ref ExistingGitHubOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonCognitoPowerUser
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
+        - arn:aws:iam::aws:policy/IAMFullAccess
+
 Outputs:
-  ApiUrl:
-    Description: HTTP API endpoint
+  ApiBaseUrl:
+    Description: Base URL of deployed HTTP API
+    Value: !Sub "https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}"
+
+  RootUrl:
+    Description: Root endpoint
     Value: !Sub "https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
 
-  FunctionName:
-    Description: Lambda function name
-    Value: !Ref EventsFunction
+  HealthUrl:
+    Description: Health endpoint
+    Value: !Sub "https://${EventsHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/health"
 
   TableName:
-    Description: Existing DynamoDB table name used by Lambda
-    Value: !Ref EventsTableName
+    Description: DynamoDB table created by this stack
+    Value: !Ref EventsTable
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref EventsUserPool
+
+  UserPoolClientId:
+    Description: Cognito App Client ID
+    Value: !Ref EventsUserPoolClient
+
+  CognitoIssuer:
+    Description: JWT issuer URL
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${EventsUserPool}"
+
+  CognitoDomainUrl:
+    Description: Cognito Hosted UI domain
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+
+  HostedLoginUrl:
+    Description: Hosted login URL for auth code flow
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${EventsUserPoolClient}&response_type=code&scope=openid+email+phone&redirect_uri=${CallbackUrl}"
+
+  DashboardName:
+    Description: CloudWatch dashboard name
+    Value: !Sub "${ProjectName}-dashboard"
+
+  GitHubActionsDeployRoleArn:
+    Description: IAM role ARN for GitHub Actions OIDC deploy
+    Value: !GetAtt GitHubActionsDeployRole.Arn

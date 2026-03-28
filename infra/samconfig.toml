@@ -1,13 +1,13 @@
 version = 0.1
 
 [default.deploy.parameters]
-stack_name = "events-api-stack"
+stack_name = "test-event-stack"
 resolve_s3 = true
-s3_prefix = "events-api-stack"
-region = "ap-south-2"
+s3_prefix = "test-event-stack"
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "StageName=\"prod\" EventsTableName=\"EventsV2\" CognitoIssuer=\"https://cognito-idp.ap-south-2.amazonaws.com/ap-south-2_mHyC0n7gQ\" CognitoAudience=\"9em6vs5jdqd68c84bm0278699\""
+parameter_overrides = "StageName=\"prod\" ProjectName=\"test-events-api\" EventsTableName=\"eventsv1\" CognitoDomainPrefix=\"events-api-full-auth-demo\" CallbackUrl=\"https://oauth.pstmn.io/v1/callback\" LogoutUrl=\"https://oauth.pstmn.io/v1/callback\""
 image_repositories = []
+confirm_changeset = true
 
 [default.global.parameters]
 region = "ap-south-2"
