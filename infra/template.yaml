@@ -62,6 +62,7 @@ Globals:
     Environment:
       Variables:
         EVENTS_TABLE_NAME: !Ref EventsTable
+        STAGE_NAME: !Ref StageName
 
 Resources:
   EventsTable:
@@ -243,8 +244,8 @@ Resources:
                 "period": 300,
                 "metrics": [
                   [ "AWS/Lambda", "Duration", "FunctionName", "${EventsFunction}", { "stat": "p50", "label": "p50 Duration" } ],
-                  [ "...", { "stat": "Average", "label": "Average Duration" } ],
-                  [ "...", { "stat": "Maximum", "label": "Max Duration" } ]
+                  [ "AWS/Lambda", "Duration", "FunctionName", "${EventsFunction}", { "stat": "Average", "label": "Average Duration" } ],
+                  [ "AWS/Lambda", "Duration", "FunctionName", "${EventsFunction}", { "stat": "Maximum", "label": "Max Duration" } ]
                 ]
               }
             },
@@ -282,7 +283,7 @@ Resources:
                 "period": 300,
                 "metrics": [
                   [ "AWS/ApiGateway", "Latency", "ApiId", "${EventsHttpApi}", "Stage", "${StageName}", { "stat": "Average", "label": "Average Latency" } ],
-                  [ "...", { "stat": "p90", "label": "p90 Latency" } ]
+                  [ "AWS/ApiGateway", "Latency", "ApiId", "${EventsHttpApi}", "Stage", "${StageName}", { "stat": "p90", "label": "p90 Latency" } ]
                 ]
               }
             },

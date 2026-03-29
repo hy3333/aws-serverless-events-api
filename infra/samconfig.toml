@@ -4,8 +4,8 @@ version = 0.1
 stack_name = "test-event-stack"
 resolve_s3 = true
 s3_prefix = "test-event-stack"
-capabilities = "CAPABILITY_IAM"
-parameter_overrides = "StageName=\"prod\" ProjectName=\"test-events-api\" EventsTableName=\"eventsv1\" CognitoDomainPrefix=\"events-api-full-auth-demo\" CallbackUrl=\"https://oauth.pstmn.io/v1/callback\" LogoutUrl=\"https://oauth.pstmn.io/v1/callback\""
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "StageName=\"prod\" ProjectName=\"test-events-api\" EventsTableName=\"eventsv1\" CognitoDomainPrefix=\"events-api-full-auth-demo\" CallbackUrl=\"https://oauth.pstmn.io/v1/callback\" LogoutUrl=\"https://oauth.pstmn.io/v1/callback\" GitHubOrg=\"hy3333\" GitHubRepo=\"aws-serverless-events-api\" GitHubBranch=\"master\" CreateGitHubOidcProvider=\"false\" ExistingGitHubOidcProviderArn=\"arn:aws:iam::233636046266:oidc-provider/token.actions.githubusercontent.com\""
 image_repositories = []
 confirm_changeset = true
 

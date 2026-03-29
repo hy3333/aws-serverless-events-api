@@ -15,7 +15,10 @@ logger.setLevel(logging.INFO)
 
 TABLE_NAME = os.environ.get("EVENTS_TABLE_NAME", "EventsV2")
 
-dynamodb = boto3.resource("dynamodb", region_name="ap-south-2")
+# Use current region from Lambda environment, not hardcoded
+session = boto3.Session()
+region = session.region_name or os.environ.get("AWS_REGION", "ap-south-2")
+dynamodb = boto3.resource("dynamodb", region_name=region)
 table = dynamodb.Table(TABLE_NAME)
 
 

@@ -1,4 +1,4 @@
-# 🚀 AWS Serverless Events API (Full IaC + CI/CD)
+# 🚀 AWS Serverless Events API (Full IaC + CI/CD) 
 
 A production-ready **serverless event management API** built using AWS services with:
 
@@ -106,7 +106,6 @@ ExistingGitHubOidcProviderArn: arn:aws:iam::<account-id>:oidc-provider/token.act
 # 🚀 Future Improvements
 
 - Add WAF / Rate limiting  
-- Add frontend UI  
 - Improve IAM least privilege  
 
 ---

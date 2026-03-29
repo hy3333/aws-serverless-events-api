@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
@@ -17,6 +18,9 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 app = FastAPI()
+
+# Get stage name from environment, defaults to "prod"
+STAGE_NAME = os.environ.get("STAGE_NAME", "prod")
 
 
 @app.middleware("http")
@@ -89,4 +93,5 @@ def delete_event(user_id: str, event_id: str):
     return
 
 
-handler = Mangum(app, api_gateway_base_path="/prod")
+# Use dynamic stage name from environment
+handler = Mangum(app, api_gateway_base_path=f"/{STAGE_NAME}")
