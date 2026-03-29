@@ -45,6 +45,6 @@ jobs:
             --template-file infra/template.yaml \
             --stack-name $STACK_NAME \
             --region $AWS_REGION \
-            --capabilities CAPABILITY_IAM \
+            --capabilities CAPABILITY_NAMED_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset
