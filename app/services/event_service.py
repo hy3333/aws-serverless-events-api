@@ -148,26 +148,40 @@ def list_events_service(
 
 
 def list_events_by_date_service(
+    user_id: str,
     event_date: str,
     limit: int = 10,
     next_token: str | None = None
 ) -> PaginatedEventsResponse:
+    # Query the EventDateIndex and filter results to the requested user_id
     query_params = {
         "IndexName": "EventDateIndex",
         "KeyConditionExpression": "event_date = :d",
         "ExpressionAttributeValues": {
-            ":d": event_date
+            ":d": event_date,
+            ":uid": user_id
         },
+        "FilterExpression": "user_id = :uid",
         "Limit": limit
     }
 
     if next_token:
         decoded = decode_token(next_token)
+        # Ensure pagination token belongs to the same user
+        if decoded.get("user_id") != user_id:
+            logger.warning(json.dumps({
+                "event": "list_events_by_date",
+                "event_date": event_date,
+                "user_id": user_id,
+                "status": "forbidden_pagination_token_mismatch"
+            }))
+            raise HTTPException(status_code=403, detail="Forbidden")
+
         query_params["ExclusiveStartKey"] = {
             "user_id": decoded["user_id"],
             "event_id": decoded["event_id"],
-            "event_date": decoded["event_date"],
-            "start_time": decoded["start_time"]
+            "event_date": decoded.get("event_date"),
+            "start_time": decoded.get("start_time")
         }
 
     response = table.query(**query_params)
@@ -181,13 +195,14 @@ def list_events_by_date_service(
         new_next_token = encode_token({
             "user_id": lek["user_id"],
             "event_id": lek["event_id"],
-            "event_date": lek["event_date"],
-            "start_time": lek["start_time"]
+            "event_date": lek.get("event_date"),
+            "start_time": lek.get("start_time")
         })
 
     logger.info(json.dumps({
         "event": "list_events_by_date",
         "event_date": event_date,
+        "user_id": user_id,
         "limit": limit,
         "returned_count": len(parsed_items),
         "has_next_token": new_next_token is not None,

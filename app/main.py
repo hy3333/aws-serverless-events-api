@@ -78,13 +78,14 @@ def get_event(user_id: str, event_id: str):
     return get_event_service(user_id, event_id)
 
 
-@app.get("/events/by-date/{event_date}", response_model=PaginatedEventsResponse)
+@app.get("/users/{user_id}/events/by-date/{event_date}", response_model=PaginatedEventsResponse)
 def list_events_by_date(
+    user_id: str,
     event_date: str,
     limit: int = Query(10, ge=1, le=100),
     next_token: str | None = None
 ):
-    return list_events_by_date_service(event_date, limit, next_token)
+    return list_events_by_date_service(user_id, event_date, limit, next_token)
 
 
 @app.delete("/users/{user_id}/events/{event_id}", status_code=204)

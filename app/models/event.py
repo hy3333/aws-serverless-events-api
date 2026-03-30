@@ -22,7 +22,6 @@ class EventResponse(BaseModel):
     created_at: datetime
 
 
-
 class PaginatedEventsResponse(BaseModel):
     items: list[EventResponse]
     next_token: Optional[str] = None

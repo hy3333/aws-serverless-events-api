@@ -20,3 +20,6 @@ lambda_package_linux/
 lambda_function.zip
 lambda_function_linux.zip
 package/
+
+postman_collection.json
+postman_environment.json
