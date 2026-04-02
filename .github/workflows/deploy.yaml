@@ -1,9 +1,9 @@
-name: Deploy SAM App
+name: "Deploy SAM App"
 
 on:
 push:
 branches:
-- master
+- "master"
 workflow_dispatch:
 
 permissions:
@@ -11,41 +11,41 @@ id-token: write
 contents: read
 
 env:
-AWS_REGION: ap-south-2
-STACK_NAME: test-event-stack
+AWS_REGION: "ap-south-2"
+STACK_NAME: "test-event-stack"
 
 jobs:
 deploy:
-runs-on: ubuntu-latest
+runs-on: "ubuntu-latest"
 
 ```
 steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
+  - name: "Checkout repository"
+    uses: "actions/checkout@v4"
 
-  - name: Set up Python 3.13
-    uses: actions/setup-python@v5
+  - name: "Set up Python 3.13"
+    uses: "actions/setup-python@v5"
     with:
-      python-version: '3.13'
+      python-version: "3.13"
 
-  - name: Configure AWS credentials from GitHub OIDC
-    uses: aws-actions/configure-aws-credentials@v4
+  - name: "Configure AWS credentials from GitHub OIDC"
+    uses: "aws-actions/configure-aws-credentials@v4"
     with:
-      role-to-assume: arn:aws:iam::233636046266:role/github-actions-events-api-role
-      aws-region: ${{ env.AWS_REGION }}
+      role-to-assume: "arn:aws:iam::233636046266:role/github-actions-events-api-role"
+      aws-region: "${{ env.AWS_REGION }}"
 
-  - name: Setup AWS SAM
-    uses: aws-actions/setup-sam@v2
+  - name: "Setup AWS SAM"
+    uses: "aws-actions/setup-sam@v2"
 
-  - name: SAM build
-    run: sam build --template-file infra/template.yaml --no-cached
+  - name: "SAM build"
+    run: "sam build --template-file infra/template.yaml --no-cached"
 
-  - name: SAM deploy
+  - name: "SAM deploy"
     run: |
       sam deploy \
         --template-file .aws-sam/build/template.yaml \
-        --stack-name $STACK_NAME \
-        --region $AWS_REGION \
+        --stack-name "${STACK_NAME}" \
+        --region "${AWS_REGION}" \
         --capabilities CAPABILITY_NAMED_IAM \
         --resolve-s3 \
         --parameter-overrides \
