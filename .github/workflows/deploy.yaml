@@ -43,6 +43,8 @@ jobs:
         run: |
           sam deploy \
             --template-file .aws-sam/build/template.yaml \
+            --config-file infra/samconfig.toml \
+            --config-env default \
             --stack-name $STACK_NAME \
             --region $AWS_REGION \
             --capabilities CAPABILITY_NAMED_IAM \
