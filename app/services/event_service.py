@@ -28,8 +28,23 @@ def encode_token(data: dict) -> str:
 
 
 def decode_token(token: str) -> dict:
-    json_str = base64.urlsafe_b64decode(token.encode()).decode()
-    return json.loads(json_str)
+    if not token or token in ("null", "None", "{{next_token}}"):
+        raise HTTPException(status_code=400, detail="Invalid next_token")
+
+    try:
+        json_str = base64.urlsafe_b64decode(token.encode()).decode()
+        decoded = json.loads(json_str)
+    except Exception:
+        logger.warning(json.dumps({
+            "event": "decode_token",
+            "status": "invalid_token_format"
+        }))
+        raise HTTPException(status_code=400, detail="Invalid next_token")
+
+    if not isinstance(decoded, dict):
+        raise HTTPException(status_code=400, detail="Invalid next_token")
+
+    return decoded
 
 
 def create_event_service(event: EventCreate) -> EventResponse:
@@ -113,8 +128,20 @@ def list_events_service(
         "Limit": limit
     }
 
-    if next_token:
+    if next_token and next_token not in ("null", "None", "{{next_token}}"):
         decoded = decode_token(next_token)
+
+        if "user_id" not in decoded or "event_id" not in decoded:
+            raise HTTPException(status_code=400, detail="Invalid next_token")
+
+        if decoded["user_id"] != user_id:
+            logger.warning(json.dumps({
+                "event": "list_events",
+                "user_id": user_id,
+                "status": "forbidden_pagination_token_mismatch"
+            }))
+            raise HTTPException(status_code=403, detail="Forbidden")
+
         query_params["ExclusiveStartKey"] = {
             "user_id": decoded["user_id"],
             "event_id": decoded["event_id"]
@@ -153,7 +180,6 @@ def list_events_by_date_service(
     limit: int = 10,
     next_token: str | None = None
 ) -> PaginatedEventsResponse:
-    # Query the EventDateIndex and filter results to the requested user_id
     query_params = {
         "IndexName": "EventDateIndex",
         "KeyConditionExpression": "event_date = :d",
@@ -165,9 +191,13 @@ def list_events_by_date_service(
         "Limit": limit
     }
 
-    if next_token:
+    if next_token and next_token not in ("null", "None", "{{next_token}}"):
         decoded = decode_token(next_token)
-        # Ensure pagination token belongs to the same user
+
+        required_keys = {"user_id", "event_id"}
+        if not required_keys.issubset(decoded.keys()):
+            raise HTTPException(status_code=400, detail="Invalid next_token")
+
         if decoded.get("user_id") != user_id:
             logger.warning(json.dumps({
                 "event": "list_events_by_date",

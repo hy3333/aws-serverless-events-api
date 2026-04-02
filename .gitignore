@@ -21,5 +21,5 @@ lambda_function.zip
 lambda_function_linux.zip
 package/
 
-postman_collection.json
-postman_environment.json
+aws-events-api-production.postman_environment.json
+aws-serverless-events-api.postman_collection.json
