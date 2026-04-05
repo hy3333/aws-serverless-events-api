@@ -23,8 +23,8 @@ DynamoDB (Events Table + GSI)
 Authentication Flow:
 User → Cognito Hosted UI → JWT Token → API Gateway Authorizer → Lambda
 
-![Deployment Flowchart](docs\deployment-CI-CD%20Flow.png)
-![Runtime FLowchart](docs\runtime%20req%20flow.png)
+![Deployment Flowchart](docs/deployment-CI-CD%20Flow.png)
+![Runtime FLowchart](docs/runtime%20req%20flow.png)
 
 ---
 
