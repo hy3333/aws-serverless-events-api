@@ -1,6 +1,6 @@
 # 🚀 AWS Serverless Events API (Full IaC + CI/CD) 
 
-A production-ready **serverless event management API** built using AWS services with:
+A **serverless event management API** built using AWS services with:
 
 - Full Infrastructure as Code (AWS SAM / CloudFormation)  
 - JWT Authentication (Cognito)  
@@ -23,7 +23,8 @@ DynamoDB (Events Table + GSI)
 Authentication Flow:
 User → Cognito Hosted UI → JWT Token → API Gateway Authorizer → Lambda
 
-![Flowchart](docs/API%20Gateway%20Event%20Flow.png)
+![Deployment Flowchart](docs\deployment-CI-CD%20Flow.png)
+![Runtime FLowchart](docs\runtime%20req%20flow.png)
 
 ---
 
@@ -63,7 +64,7 @@ Includes monitoring for:
 - API Gateway Requests, Latency, 4xx/5xx  
 - DynamoDB Read/Write capacity  
 
-![Dashboard](docs/cloudwatch_dashboard.jpeg)
+![Dashboard](docs/cloudwatch_dashboard.png)
 
 ---
 
@@ -102,13 +103,7 @@ CreateGitHubOidcProvider: "false"
 ExistingGitHubOidcProviderArn: arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com
 
 ---
-
-# 🚀 Future Improvements
-
-- Add WAF / Rate limiting  
-- Improve IAM least privilege  
-
----
+  
 
 # 👨‍💻 Author
 Himanshu Yadav
