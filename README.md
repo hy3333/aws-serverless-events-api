@@ -28,17 +28,6 @@ User → Cognito Hosted UI → JWT Token → API Gateway Authorizer → Lambda
 
 ---
 
-# 🛠 Tech Stack
-
-- AWS Lambda  
-- API Gateway (HTTP API)  
-- DynamoDB (with GSI for date-based queries)  
-- Amazon Cognito (JWT Auth)  
-- CloudWatch (Logs + Dashboard)  
-- AWS SAM (Infrastructure as Code)  
-- GitHub Actions (CI/CD with OIDC)  
-- FastAPI + Mangum  
-
 ---
 
 # 📦 Features
